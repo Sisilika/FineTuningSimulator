@@ -349,7 +349,7 @@ textarea.doc-input:focus,
       <p id="upload-label">Click to upload a .txt or .md file</p>
       <p style="font-size:11px">or paste text below</p>
     </div>
-    <input type="file" id="file-input" accept=".txt,.md" style="display:none">
+    <input type="file" id="file-input" accept=".txt,.md,.pdf,.doc,.docx" style="display:none">
     <textarea class="doc-input" id="doc-text" placeholder="Or paste your document text here…" rows="4"></textarea>
     <p class="token-badge" id="token-badge">0 tokens estimated</p>
     <div class="config-row">
@@ -409,6 +409,8 @@ textarea.doc-input:focus,
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.js"></script>
+<script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 let trainedDoc = '';
@@ -447,17 +449,72 @@ function initChart() {
 
 initChart();
 
-document.getElementById('doc-text').addEventListener('input', updateTokenBadge);
-document.getElementById('file-input').addEventListener('change', e => {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    document.getElementById('doc-text').value = ev.target.result;
-    document.getElementById('upload-zone').classList.add('has-data');
-    document.getElementById('upload-label').textContent = f.name;
+document.getElementById('file-input').addEventListener('change', async e => {
+
+  const f = e.target.files[0];
+  if (!f) return;
+
+  const ext = f.name.split('.').pop().toLowerCase();
+  let extractedText = '';
+
+  try {
+
+    if (ext === 'txt' || ext === 'md') {
+
+      extractedText = await f.text();
+
+    } else if (ext === 'pdf') {
+
+      const buffer = await f.arrayBuffer();
+
+      const pdf = await pdfjsLib.getDocument({
+        data: buffer
+      }).promise;
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+
+        extractedText +=
+          content.items.map(item => item.str).join(' ') + '\n';
+
+      }
+
+    } else if (ext === 'docx') {
+
+      const buffer = await f.arrayBuffer();
+
+      const result =
+        await mammoth.extractRawText({ arrayBuffer: buffer });
+
+      extractedText = result.value;
+
+    } else {
+
+      alert('Supported files: TXT, MD, PDF, DOCX');
+      return;
+
+    }
+
+    document.getElementById('doc-text').value = extractedText;
+
+    document.getElementById('upload-zone')
+      .classList.add('has-data');
+
+    document.getElementById('upload-label')
+      .textContent = f.name;
+
     updateTokenBadge();
-  };
-  r.readAsText(f);
+
+  } catch (err) {
+
+    console.error(err);
+
+    alert('Could not read file.');
+
+  }
+
 });
 
 function updateTokenBadge() {
