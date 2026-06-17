@@ -283,7 +283,12 @@ textarea.doc-input:focus,
     #7c6cff,
     #a793ff
   );
-  .provider-grid{
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.provider-grid{
   display:flex;
   gap:15px;
   margin-bottom:20px;
@@ -309,10 +314,6 @@ textarea.doc-input:focus,
   margin-bottom:10px;
 }
   
-  color:white;
-  font-weight:700;
-  cursor:pointer;
-}
 
 .status-chip{
   padding:5px 12px;
@@ -450,18 +451,7 @@ textarea.doc-input:focus,
 
   <div   class="panel chat-panel"   id="chat-panel"   style="display:none" >
     <div class="panel-title"><i class="ti ti-message-2" aria-hidden="true"></i> Chat with your fine-tuned model</div>
-    <div id="provider-panel">
 
-  <h3 style="margin-bottom:15px">
-    Choose AI Provider
-  </h3>
-
-  <div class="provider-grid">
-
-    <div
-      class="provider-card"
-      onclick="chooseProvider('openrouter')"
-    >
       <div class="provider-icon">🤖</div>
       <div>OpenRouter</div>
     </div>
@@ -938,16 +928,9 @@ catch(err){
 document.getElementById('chat-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
-  let selectedProvider = '';
+let selectedProvider = '';
 
 function selectProvider(provider){
-
-  selectedProvider = provider;
-
-  document.getElementById(
-    'provider-panel'
-  ).style.display = 'none';
-function chooseProvider(provider){
 
   selectedProvider = provider;
 
@@ -965,11 +948,7 @@ function connectProvider(){
     ).value;
 
   if(!key){
-
-    alert(
-      'Please enter an API key'
-    );
-
+    alert('Please enter an API key');
     return;
   }
 
@@ -987,13 +966,11 @@ function connectProvider(){
   ).style.display = 'none';
 
   document.getElementById(
+    'chat-panel'
+  ).style.display = 'block';
+
+  document.getElementById(
     'chat-row'
   ).style.display = 'flex';
 
 }
-  document.getElementById(
-    'chat-panel'
-  ).style.display = 'block';
-
-}
-</script>
