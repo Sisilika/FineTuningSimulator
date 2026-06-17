@@ -393,8 +393,36 @@ textarea.doc-input:focus,
       <canvas id="loss-chart" role="img" aria-label="Training loss curve over steps">Training loss values will appear as training runs.</canvas>
     </div>
   </div>
+  <div
+  class="panel"
+  id="provider-panel"
+  style="display:none"
+>
+  <div class="panel-title">
+    Choose AI Assistant
+  </div>
 
-  <div class="panel chat-panel">
+  <div class="config-row">
+
+    <button
+      class="train-btn"
+      onclick="selectProvider('openrouter')"
+    >
+      🤖 OpenRouter
+    </button>
+
+    <button
+      class="train-btn"
+      onclick="selectProvider('cloud')"
+    >
+      ☁️ Cloud API
+    </button>
+
+  </div>
+
+</div>
+
+  <div   class="panel chat-panel"   id="chat-panel"   style="display:none" >
     <div class="panel-title"><i class="ti ti-message-2" aria-hidden="true"></i> Chat with your fine-tuned model</div>
     <div class="chat-messages" id="chat-messages">
       <div class="msg ai">
@@ -647,8 +675,11 @@ async function startTraining() {
   document.getElementById('chat-input').disabled = false;
   document.getElementById('send-btn').disabled = false;
   isTraining = false;
+  document.getElementById(
+  'provider-panel'
+).style.display = 'block';
 
-  addMsg('ai', 'Training complete! I\'ve been fine-tuned on your document. Ask me anything about it.');
+  
 }
 
 function addMsg(role, text) {
@@ -838,4 +869,19 @@ catch(err){
 document.getElementById('chat-input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
 });
+  let selectedProvider = '';
+
+function selectProvider(provider){
+
+  selectedProvider = provider;
+
+  document.getElementById(
+    'provider-panel'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'chat-panel'
+  ).style.display = 'block';
+
+}
 </script>
