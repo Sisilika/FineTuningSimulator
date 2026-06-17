@@ -283,6 +283,32 @@ textarea.doc-input:focus,
     #7c6cff,
     #a793ff
   );
+  .provider-grid{
+  display:flex;
+  gap:15px;
+  margin-bottom:20px;
+}
+
+.provider-card{
+  flex:1;
+  padding:20px;
+  border-radius:18px;
+  background:#f7f5ff;
+  cursor:pointer;
+  text-align:center;
+  transition:.25s;
+}
+
+.provider-card:hover{
+  transform:translateY(-4px);
+  background:#efeaff;
+}
+
+.provider-icon{
+  font-size:32px;
+  margin-bottom:10px;
+}
+  
   color:white;
   font-weight:700;
   cursor:pointer;
@@ -424,6 +450,33 @@ textarea.doc-input:focus,
 
   <div   class="panel chat-panel"   id="chat-panel"   style="display:none" >
     <div class="panel-title"><i class="ti ti-message-2" aria-hidden="true"></i> Chat with your fine-tuned model</div>
+    <div id="provider-panel">
+
+  <h3 style="margin-bottom:15px">
+    Choose AI Provider
+  </h3>
+
+  <div class="provider-grid">
+
+    <div
+      class="provider-card"
+      onclick="chooseProvider('openrouter')"
+    >
+      <div class="provider-icon">🤖</div>
+      <div>OpenRouter</div>
+    </div>
+
+    <div
+      class="provider-card"
+      onclick="chooseProvider('anthropic')"
+    >
+      <div class="provider-icon">🧠</div>
+      <div>Anthropic</div>
+    </div>
+
+  </div>
+
+</div>
     <div class="chat-messages" id="chat-messages">
       <div class="msg ai">
         <div class="avatar">AI</div>
@@ -435,29 +488,40 @@ textarea.doc-input:focus,
   <label style="font-size:12px;color:#7b7699">
     Chat Provider
   </label>
+      
 
-  <select id="provider">
-    <option value="openrouter">
-      OpenRouter
-    </option>
-
-    <option value="anthropic">
-      Anthropic
-    </option>
-  </select>
+</div>
+    <div
+  class="chat-row"
+  id="chat-row"
+  style="display:none"
+>
+      <textarea class="chat-input" id="chat-input" rows="2" placeholder="Ask something about your document…" disabled></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendChat()" disabled>Send ↗</button>
+    </div>
+    <div
+  id="api-section"
+  style="
+    display:none;
+    margin-bottom:20px;
+  "
+>
 
   <input
     type="password"
     id="api-key"
-    placeholder="Paste API key here"
+    placeholder="Paste API key"
+  >
+
+  <button
+    class="send-btn"
     style="margin-top:10px"
-  />
+    onclick="connectProvider()"
+  >
+    Connect
+  </button>
 
 </div>
-    <div class="chat-row">
-      <textarea class="chat-input" id="chat-input" rows="2" placeholder="Ask something about your document…" disabled></textarea>
-      <button class="send-btn" id="send-btn" onclick="sendChat()" disabled>Send ↗</button>
-    </div>
   </div>
 </div>
 
@@ -466,6 +530,7 @@ textarea.doc-input:focus,
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 let trainedDoc = '';
+let selectedProvider = '';
 let chatHistory = [];
 window.addEventListener('load', () => {
 
@@ -882,7 +947,50 @@ function selectProvider(provider){
   document.getElementById(
     'provider-panel'
   ).style.display = 'none';
+function chooseProvider(provider){
 
+  selectedProvider = provider;
+
+  document.getElementById(
+    'api-section'
+  ).style.display = 'block';
+
+}
+
+function connectProvider(){
+
+  const key =
+    document.getElementById(
+      'api-key'
+    ).value;
+
+  if(!key){
+
+    alert(
+      'Please enter an API key'
+    );
+
+    return;
+  }
+
+  localStorage.setItem(
+    'api_key',
+    key
+  );
+
+  document.getElementById(
+    'provider-panel'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'api-section'
+  ).style.display = 'none';
+
+  document.getElementById(
+    'chat-row'
+  ).style.display = 'flex';
+
+}
   document.getElementById(
     'chat-panel'
   ).style.display = 'block';
