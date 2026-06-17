@@ -809,8 +809,12 @@ try {
       }
     );
 
-  const data =
-    await res.json();
+  const data = await res.json();
+
+console.log("STATUS:", res.status);
+console.log("DATA:", data);
+
+alert(JSON.stringify(data, null, 2));
 
   let reply = '';
 
