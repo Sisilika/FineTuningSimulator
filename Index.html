@@ -1,0 +1,338 @@
+
+<h2 class="sr-only">LLM Fine-Tuner Simulator — upload a document, watch training metrics, then chat with your fine-tuned model</h2>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary)}
+.app{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto 1fr;gap:16px;padding:16px;min-height:600px}
+.header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.panel{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:16px}
+.panel-title{font-size:13px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.upload-zone{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-md);padding:20px;text-align:center;cursor:pointer;transition:background .2s;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.upload-zone:hover{background:var(--color-background-secondary)}
+.upload-zone.has-data{border-style:solid;border-color:var(--color-border-success);background:var(--color-background-success)}
+.upload-zone p{font-size:13px;color:var(--color-text-secondary)}
+.upload-zone.has-data p{color:var(--color-text-success)}
+textarea.doc-input{width:100%;height:100px;resize:vertical;font-size:13px;font-family:var(--font-mono);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px;background:var(--color-background-secondary);color:var(--color-text-primary);margin-top:8px}
+.config-row{display:flex;gap:12px;margin-top:10px;align-items:center;flex-wrap:wrap}
+.config-item{display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px}
+.config-item label{font-size:12px;color:var(--color-text-secondary)}
+.config-item select,.config-item input[type=number]{font-size:13px;padding:6px 8px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);width:100%}
+.train-btn{margin-top:12px;width:100%;padding:10px;font-size:14px;font-weight:500;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);transition:all .15s}
+.train-btn:hover{background:var(--color-background-secondary)}
+.train-btn:disabled{opacity:.5;cursor:not-allowed}
+.train-btn.running{border-color:#1D9E75;color:#0F6E56}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.metric-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px}
+.metric-card .label{font-size:11px;color:var(--color-text-secondary);margin-bottom:4px}
+.metric-card .value{font-size:20px;font-weight:500}
+.metric-card .value.good{color:#0F6E56}
+.metric-card .value.warn{color:#854F0B}
+.progress-bar-wrap{height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.progress-bar{height:100%;background:#1D9E75;border-radius:3px;transition:width .4s}
+.epoch-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:10px}
+.chart-wrap{position:relative;width:100%;height:160px;margin-top:4px}
+.log-area{font-size:11px;font-family:var(--font-mono);color:var(--color-text-secondary);max-height:90px;overflow-y:auto;background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:8px;margin-top:8px;line-height:1.6}
+.log-area .log-ok{color:#0F6E56}
+.log-area .log-warn{color:#854F0B}
+.chat-panel{grid-column:1/-1;display:flex;flex-direction:column;gap:0}
+.chat-messages{flex:1;min-height:180px;max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.msg{display:flex;gap:10px;align-items:flex-start}
+.msg .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0}
+.msg.user .avatar{background:#CECBF6;color:#3C3489}
+.msg.ai .avatar{background:#9FE1CB;color:#085041}
+.msg .bubble{font-size:13px;line-height:1.6;padding:8px 12px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);max-width:85%}
+.msg.user .bubble{background:#EEEDFE;color:#26215C;margin-left:auto}
+.chat-row{display:flex;gap:8px;align-items:flex-end}
+.chat-input{flex:1;font-size:13px;padding:10px 12px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-secondary);color:var(--color-text-primary);resize:none}
+.send-btn{padding:10px 16px;font-size:13px;font-weight:500;cursor:pointer;border-radius:var(--border-radius-md);border:0.5px solid #1D9E75;background:#E1F5EE;color:#0F6E56;transition:all .15s}
+.send-btn:hover{background:#9FE1CB}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+.status-chip{font-size:11px;padding:3px 8px;border-radius:100px;font-weight:500}
+.status-chip.idle{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.status-chip.training{background:#FAEEDA;color:#854F0B}
+.status-chip.done{background:#E1F5EE;color:#0F6E56}
+.token-badge{font-size:11px;color:var(--color-text-secondary);margin-top:4px}
+</style>
+
+<div class="app">
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <i class="ti ti-brain" style="font-size:22px;color:#534AB7" aria-hidden="true"></i>
+      <span style="font-size:16px;font-weight:500">LLM Fine-Tuner Simulator</span>
+      <span class="status-chip idle" id="status-chip">idle</span>
+    </div>
+    <span style="font-size:12px;color:var(--color-text-secondary)">powered by Claude</span>
+  </div>
+
+  <div class="panel" style="grid-column:1">
+    <div class="panel-title"><i class="ti ti-file-text" aria-hidden="true"></i> Training data</div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
+      <i class="ti ti-upload" style="font-size:24px;color:var(--color-text-secondary)" aria-hidden="true"></i>
+      <p id="upload-label">Click to upload a .txt or .md file</p>
+      <p style="font-size:11px">or paste text below</p>
+    </div>
+    <input type="file" id="file-input" accept=".txt,.md" style="display:none">
+    <textarea class="doc-input" id="doc-text" placeholder="Or paste your document text here…" rows="4"></textarea>
+    <p class="token-badge" id="token-badge">0 tokens estimated</p>
+    <div class="config-row">
+      <div class="config-item">
+        <label>Epochs</label>
+        <input type="number" id="cfg-epochs" value="3" min="1" max="10">
+      </div>
+      <div class="config-item">
+        <label>Learning rate</label>
+        <select id="cfg-lr">
+          <option value="5e-5">5e-5 (low)</option>
+          <option value="2e-4" selected>2e-4 (default)</option>
+          <option value="1e-3">1e-3 (high)</option>
+        </select>
+      </div>
+      <div class="config-item">
+        <label>Batch size</label>
+        <select id="cfg-bs">
+          <option value="4">4</option>
+          <option value="8" selected>8</option>
+          <option value="16">16</option>
+        </select>
+      </div>
+    </div>
+    <button class="train-btn" id="train-btn" onclick="startTraining()">
+      <i class="ti ti-player-play" aria-hidden="true"></i> Start training
+    </button>
+    <div class="log-area" id="log-area" aria-live="polite"></div>
+  </div>
+
+  <div class="panel" style="grid-column:2">
+    <div class="panel-title"><i class="ti ti-chart-line" aria-hidden="true"></i> Training metrics</div>
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="label">Train loss</div><div class="value warn" id="m-loss">—</div></div>
+      <div class="metric-card"><div class="label">Accuracy</div><div class="value good" id="m-acc">—</div></div>
+      <div class="metric-card"><div class="label">Perplexity</div><div class="value" id="m-ppl">—</div></div>
+    </div>
+    <div class="epoch-label" id="epoch-label">Not started</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+    <div class="chart-wrap">
+      <canvas id="loss-chart" role="img" aria-label="Training loss curve over steps">Training loss values will appear as training runs.</canvas>
+    </div>
+  </div>
+
+  <div class="panel chat-panel">
+    <div class="panel-title"><i class="ti ti-message-2" aria-hidden="true"></i> Chat with your fine-tuned model</div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="msg ai">
+        <div class="avatar">AI</div>
+        <div class="bubble">Upload a document and train the model first. Once training completes, I'll answer questions based on your data.</div>
+      </div>
+    </div>
+    <div class="chat-row">
+      <textarea class="chat-input" id="chat-input" rows="2" placeholder="Ask something about your document…" disabled></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendChat()" disabled>Send ↗</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let trainedDoc = '';
+let chatHistory = [];
+let lossChart = null;
+let lossData = [];
+let accData = [];
+let stepLabels = [];
+let isTraining = false;
+
+const ctx = document.getElementById('loss-chart').getContext('2d');
+
+function initChart() {
+  if (lossChart) lossChart.destroy();
+  lossData = []; accData = []; stepLabels = [];
+  lossChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: stepLabels,
+      datasets: [
+        { label: 'Loss', data: lossData, borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2, fill: true },
+        { label: 'Accuracy', data: accData, borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2, fill: true, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, color: '#888780', maxRotation: 0 }, grid: { color: 'rgba(136,135,128,0.12)' } },
+        y: { title: { display: true, text: 'Loss', font: { size: 10 }, color: '#D85A30' }, ticks: { font: { size: 10 }, color: '#888780' }, grid: { color: 'rgba(136,135,128,0.12)' }, min: 0 },
+        y2: { position: 'right', title: { display: true, text: 'Acc %', font: { size: 10 }, color: '#1D9E75' }, ticks: { font: { size: 10 }, color: '#888780' }, grid: { display: false }, min: 0, max: 100 }
+      }
+    }
+  });
+}
+
+initChart();
+
+document.getElementById('doc-text').addEventListener('input', updateTokenBadge);
+document.getElementById('file-input').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    document.getElementById('doc-text').value = ev.target.result;
+    document.getElementById('upload-zone').classList.add('has-data');
+    document.getElementById('upload-label').textContent = f.name;
+    updateTokenBadge();
+  };
+  r.readAsText(f);
+});
+
+function updateTokenBadge() {
+  const text = document.getElementById('doc-text').value;
+  const est = Math.round(text.split(/\s+/).filter(Boolean).length * 1.35);
+  document.getElementById('token-badge').textContent = `~${est.toLocaleString()} tokens estimated`;
+}
+
+function setStatus(s) {
+  const chip = document.getElementById('status-chip');
+  chip.textContent = s;
+  chip.className = 'status-chip ' + (s === 'idle' ? 'idle' : s === 'training' ? 'training' : 'done');
+}
+
+function log(msg, cls = '') {
+  const el = document.getElementById('log-area');
+  el.innerHTML += `<div class="${cls ? 'log-' + cls : ''}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function startTraining() {
+  const text = document.getElementById('doc-text').value.trim();
+  if (!text) { log('⚠ Paste or upload a document first.', 'warn'); return; }
+  if (isTraining) return;
+  isTraining = true;
+
+  trainedDoc = text;
+  const epochs = parseInt(document.getElementById('cfg-epochs').value) || 3;
+  const lr = document.getElementById('cfg-lr').value;
+  const bs = parseInt(document.getElementById('cfg-bs').value);
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const tokens = Math.round(words * 1.35);
+  const stepsPerEpoch = Math.max(4, Math.ceil(tokens / (bs * 512)));
+
+  document.getElementById('train-btn').disabled = true;
+  document.getElementById('train-btn').classList.add('running');
+  document.getElementById('train-btn').innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> Training…';
+  document.getElementById('chat-input').disabled = true;
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('log-area').innerHTML = '';
+  setStatus('training');
+  initChart();
+
+  log(`Starting fine-tune | tokens: ${tokens.toLocaleString()} | lr: ${lr} | batch: ${bs}`);
+  await sleep(300);
+
+  let baseLoss = 2.8 + Math.random() * 0.4;
+  let baseAcc = 18 + Math.random() * 5;
+  let step = 0;
+
+  for (let epoch = 1; epoch <= epochs; epoch++) {
+    log(`Epoch ${epoch}/${epochs} — ${stepsPerEpoch} steps`);
+    for (let s = 1; s <= stepsPerEpoch; s++) {
+      step++;
+      const frac = step / (epochs * stepsPerEpoch);
+      const decay = Math.exp(-frac * 3.2);
+      const noise = (Math.random() - 0.5) * 0.18;
+      const loss = parseFloat((baseLoss * decay + 0.22 + noise).toFixed(3));
+      const acc = parseFloat(Math.min(96, baseAcc + frac * 68 + (Math.random() - 0.5) * 3).toFixed(1));
+      const ppl = parseFloat(Math.exp(loss).toFixed(2));
+
+      stepLabels.push(`E${epoch}S${s}`);
+      lossData.push(loss); accData.push(acc);
+      lossChart.update();
+
+      document.getElementById('m-loss').textContent = loss.toFixed(3);
+      document.getElementById('m-acc').textContent = acc.toFixed(1) + '%';
+      document.getElementById('m-ppl').textContent = ppl.toFixed(2);
+      const pct = Math.round((step / (epochs * stepsPerEpoch)) * 100);
+      document.getElementById('prog-bar').style.width = pct + '%';
+      document.getElementById('epoch-label').textContent = `Epoch ${epoch}/${epochs} · Step ${s}/${stepsPerEpoch} · ${pct}%`;
+
+      await sleep(220);
+    }
+    log(`✓ Epoch ${epoch} complete — loss: ${lossData[lossData.length-1].toFixed(3)}, acc: ${accData[accData.length-1].toFixed(1)}%`, 'ok');
+    await sleep(200);
+  }
+
+  log('✅ Training complete — model weights saved', 'ok');
+  setStatus('done');
+  document.getElementById('epoch-label').textContent = `Training complete · ${step} total steps`;
+  document.getElementById('train-btn').disabled = false;
+  document.getElementById('train-btn').classList.remove('running');
+  document.getElementById('train-btn').innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Retrain';
+  document.getElementById('chat-input').disabled = false;
+  document.getElementById('send-btn').disabled = false;
+  isTraining = false;
+
+  addMsg('ai', 'Training complete! I\'ve been fine-tuned on your document. Ask me anything about it.');
+}
+
+function addMsg(role, text) {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = `<div class="avatar">${role === 'user' ? 'You' : 'AI'}</div><div class="bubble">${text}</div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function addTypingIndicator() {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'typing-indicator';
+  div.innerHTML = `<div class="avatar">AI</div><div class="bubble" style="color:var(--color-text-secondary)">Thinking…</div>`;
+  wrap.appendChild(div); wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const q = inp.value.trim(); if (!q || !trainedDoc) return;
+  inp.value = '';
+  document.getElementById('send-btn').disabled = true;
+
+  addMsg('user', q);
+  chatHistory.push({ role: 'user', content: q });
+  addTypingIndicator();
+
+  const systemPrompt = `You are a specialized language model that has been fine-tuned exclusively on the following document. Answer questions only based on the information in this document. If the answer is not in the document, say so clearly. Be concise and cite relevant parts.
+
+=== FINE-TUNED DOCUMENT ===
+${trainedDoc.slice(0, 6000)}
+=== END OF DOCUMENT ===`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: chatHistory.slice(-6)
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.map(b => b.text || '').join('') || 'No response received.';
+    chatHistory.push({ role: 'assistant', content: reply });
+    document.getElementById('typing-indicator')?.remove();
+    addMsg('ai', reply);
+  } catch (err) {
+    document.getElementById('typing-indicator')?.remove();
+    addMsg('ai', 'Error reaching the API. Make sure the app is running in the Claude environment.');
+  }
+
+  document.getElementById('send-btn').disabled = false;
+  inp.focus();
+}
+
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+});
+</script>
