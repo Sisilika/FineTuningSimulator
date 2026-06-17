@@ -1,383 +1,74 @@
 
-<h2 class="sr-only">LLM Fine-Tuner Simulator — upload a document, watch training metrics, then chat with your fine-tuned model</h2>
+<h2 class="sr-only">LLM Fine-Tuner Simulator — upload a document and watch live training metrics animate in real time</h2>
 
 <style>
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-}
-
-body{
-  font-family:Inter, sans-serif;
-  color:#2d2955;
-  background:
-    radial-gradient(circle at top left,#f4efff 0%,transparent 35%),
-    radial-gradient(circle at top right,#eef7ff 0%,transparent 35%),
-    linear-gradient(135deg,#fcfbff,#f7f9ff);
-  min-height:100vh;
-}
-
-.app{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  grid-template-rows:auto auto 1fr;
-  gap:20px;
-  padding:24px;
-  max-width:1400px;
-  margin:auto;
-}
-
-.header{
-  grid-column:1/-1;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:20px 28px;
-  border-radius:24px;
-  background:rgba(255,255,255,0.7);
-  backdrop-filter:blur(18px);
-  box-shadow:
-    0 12px 40px rgba(124,108,255,.12),
-    0 4px 12px rgba(0,0,0,.04);
-}
-
-.panel{
-  background:rgba(255,255,255,.72);
-  backdrop-filter:blur(16px);
-  border:1px solid rgba(255,255,255,.55);
-  border-radius:24px;
-  padding:22px;
-  box-shadow:
-    0 10px 30px rgba(124,108,255,.08),
-    0 2px 8px rgba(0,0,0,.04);
-  transition:.25s;
-}
-
-.panel:hover{
-  transform:translateY(-3px);
-}
-
-.panel-title{
-  font-size:13px;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:.08em;
-  color:#7c6cff;
-  margin-bottom:16px;
-}
-
-.upload-zone{
-  border:2px dashed #cfc6ff;
-  border-radius:18px;
-  background:#faf8ff;
-  min-height:140px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  gap:8px;
-  cursor:pointer;
-  transition:.25s;
-}
-
-.upload-zone:hover{
-  background:#f3efff;
-  border-color:#9d8eff;
-}
-
-.upload-zone.has-data{
-  background:#eefcf5;
-  border-color:#5ec88a;
-}
-
-.upload-zone p{
-  color:#6f6a8d;
-}
-
-textarea.doc-input,
-.chat-input,
-select,
-input[type=number]{
-  width:100%;
-  border:none;
-  border-radius:16px;
-  background:#f7f5ff;
-  padding:12px;
-  font-size:13px;
-  color:#2d2955;
-  margin-top:10px;
-}
-
-textarea.doc-input:focus,
-.chat-input:focus{
-  outline:none;
-  box-shadow:0 0 0 3px rgba(124,108,255,.15);
-}
-
-.config-row{
-  display:flex;
-  gap:12px;
-  margin-top:14px;
-  flex-wrap:wrap;
-}
-
-.config-item{
-  flex:1;
-  min-width:110px;
-}
-
-.config-item label{
-  font-size:12px;
-  color:#7b7699;
-  margin-bottom:4px;
-}
-
-.train-btn{
-  width:100%;
-  margin-top:16px;
-  padding:14px;
-  border:none;
-  border-radius:18px;
-  font-size:14px;
-  font-weight:700;
-  color:white;
-  cursor:pointer;
-  background:linear-gradient(
-    135deg,
-    #7c6cff,
-    #a793ff
-  );
-  box-shadow:0 10px 24px rgba(124,108,255,.25);
-  transition:.25s;
-}
-
-.train-btn:hover{
-  transform:translateY(-2px);
-}
-
-.metrics-grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:12px;
-  margin-bottom:18px;
-}
-
-.metric-card{
-  background:white;
-  border-radius:18px;
-  padding:16px;
-  box-shadow:0 4px 12px rgba(0,0,0,.04);
-}
-
-.metric-card .label{
-  font-size:11px;
-  color:#8a84a8;
-  margin-bottom:6px;
-}
-
-.metric-card .value{
-  font-size:22px;
-  font-weight:700;
-}
-
-#m-loss{
-  color:#ff6b81;
-}
-
-#m-acc{
-  color:#2db87d;
-}
-
-#m-ppl{
-  color:#7c6cff;
-}
-
-.progress-bar-wrap{
-  height:10px;
-  background:#ece8ff;
-  border-radius:100px;
-  overflow:hidden;
-}
-
-.progress-bar{
-  height:100%;
-  background:linear-gradient(
-    90deg,
-    #7c6cff,
-    #b29cff
-  );
-  border-radius:100px;
-}
-
-.log-area{
-  margin-top:14px;
-  border-radius:16px;
-  padding:12px;
-  background:#faf8ff;
-  font-size:12px;
-  line-height:1.7;
-  color:#6f6a8d;
-}
-
-.chat-messages{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  min-height:220px;
-  max-height:300px;
-  overflow-y:auto;
-  margin-bottom:16px;
-}
-
-.msg{
-  display:flex;
-  gap:10px;
-}
-
-.avatar{
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:11px;
-  font-weight:700;
-}
-
-.msg.ai .avatar{
-  background:#e9e4ff;
-  color:#5b4ae6;
-}
-
-.msg.user .avatar{
-  background:#dff7ec;
-  color:#16885a;
-}
-
-.msg.ai .bubble{
-  background:#f8f5ff;
-  border-radius:18px;
-  padding:12px 14px;
-}
-
-.msg.user .bubble{
-  background:linear-gradient(
-    135deg,
-    #7c6cff,
-    #a793ff
-  );
-  color:white;
-  border-radius:18px;
-  padding:12px 14px;
-  margin-left:auto;
-}
-
-.send-btn{
-  border:none;
-  border-radius:16px;
-  padding:12px 18px;
-  background:linear-gradient(
-    135deg,
-    #7c6cff,
-    #a793ff
-  );
-  color:white;
-  font-weight:700;
-  cursor:pointer;
-}
-
-.provider-grid{
-  display:flex;
-  gap:15px;
-  margin-bottom:20px;
-}
-
-.provider-card{
-  flex:1;
-  padding:20px;
-  border-radius:18px;
-  background:#f7f5ff;
-  cursor:pointer;
-  text-align:center;
-  transition:.25s;
-}
-
-.provider-card:hover{
-  transform:translateY(-4px);
-  background:#efeaff;
-}
-
-.provider-icon{
-  font-size:32px;
-  margin-bottom:10px;
-}
-  
-
-.status-chip{
-  padding:5px 12px;
-  border-radius:999px;
-  font-size:11px;
-  font-weight:700;
-}
-
-.status-chip.idle{
-  background:#f0edff;
-  color:#6a5cf6;
-}
-
-.status-chip.training{
-  background:#fff1d7;
-  color:#b87800;
-}
-
-.status-chip.done{
-  background:#def7eb;
-  color:#15885a;
-}
-
-@media(max-width:900px){
-  .app{
-    grid-template-columns:1fr;
-  }
-}
-
-@keyframes fadeUp{
-  from{
-    opacity:0;
-    transform:translateY(12px);
-  }
-  to{
-    opacity:1;
-    transform:translateY(0);
-  }
-}
-
-.panel{
-  animation:fadeUp .45s ease;
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,sans-serif;color:#2d2955;background:radial-gradient(circle at top left,#f4efff 0%,transparent 35%),radial-gradient(circle at top right,#eef7ff 0%,transparent 35%),linear-gradient(135deg,#fcfbff,#f7f9ff);min-height:100vh}
+.app{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:24px;max-width:1400px;margin:auto}
+.header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:20px 28px;border-radius:24px;background:rgba(255,255,255,0.7);backdrop-filter:blur(18px);box-shadow:0 12px 40px rgba(124,108,255,.12),0 4px 12px rgba(0,0,0,.04)}
+.panel{background:rgba(255,255,255,.72);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.55);border-radius:24px;padding:22px;box-shadow:0 10px 30px rgba(124,108,255,.08),0 2px 8px rgba(0,0,0,.04);animation:fadeUp .45s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.panel-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#7c6cff;margin-bottom:16px}
+.upload-zone{border:2px dashed #cfc6ff;border-radius:18px;background:#faf8ff;min-height:120px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;cursor:pointer;transition:.25s}
+.upload-zone:hover{background:#f3efff;border-color:#9d8eff}
+.upload-zone.has-data{background:#eefcf5;border-color:#5ec88a}
+.upload-zone p{color:#6f6a8d;font-size:13px}
+.upload-zone.has-data p{color:#1a7a52}
+textarea.doc-input,select,input[type=number]{width:100%;border:none;border-radius:16px;background:#f7f5ff;padding:12px;font-size:13px;color:#2d2955;margin-top:10px;font-family:inherit}
+textarea.doc-input{resize:vertical;min-height:80px}
+textarea.doc-input:focus,select:focus,input[type=number]:focus{outline:none;box-shadow:0 0 0 3px rgba(124,108,255,.15)}
+.token-badge{font-size:11px;color:#8a84a8;margin-top:6px;padding-left:4px}
+.config-row{display:flex;gap:12px;margin-top:14px;flex-wrap:wrap}
+.config-item{flex:1;min-width:110px;display:flex;flex-direction:column;gap:4px}
+.config-item label{font-size:12px;color:#7b7699;font-weight:500}
+.train-btn{width:100%;margin-top:16px;padding:14px;border:none;border-radius:18px;font-size:14px;font-weight:700;color:white;cursor:pointer;background:linear-gradient(135deg,#7c6cff,#a793ff);box-shadow:0 10px 24px rgba(124,108,255,.25);transition:.25s;display:flex;align-items:center;justify-content:center;gap:8px}
+.train-btn:hover:not(:disabled){transform:translateY(-2px)}
+.train-btn:disabled{opacity:.55;cursor:not-allowed}
+.log-area{margin-top:14px;border-radius:16px;padding:12px;background:#faf8ff;font-size:12px;font-family:monospace;line-height:1.7;color:#6f6a8d;max-height:140px;overflow-y:auto}
+.log-area .log-ok{color:#16885a}
+.log-area .log-warn{color:#b87800}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.metric-card{background:white;border-radius:18px;padding:16px;box-shadow:0 4px 12px rgba(0,0,0,.04)}
+.metric-card .label{font-size:11px;color:#8a84a8;margin-bottom:6px}
+.metric-card .value{font-size:22px;font-weight:700}
+#m-loss{color:#ff6b81}
+#m-acc{color:#2db87d}
+#m-ppl{color:#7c6cff}
+.epoch-label{font-size:12px;color:#8a84a8;margin-bottom:8px}
+.progress-bar-wrap{height:10px;background:#ece8ff;border-radius:100px;overflow:hidden;margin-bottom:16px}
+.progress-bar{height:100%;background:linear-gradient(90deg,#7c6cff,#b29cff);border-radius:100px;width:0%;transition:width .3s}
+.chart-wrap{position:relative;width:100%;height:220px}
+.status-chip{padding:5px 12px;border-radius:999px;font-size:11px;font-weight:700}
+.status-chip.idle{background:#f0edff;color:#6a5cf6}
+.status-chip.training{background:#fff1d7;color:#b87800}
+.status-chip.done{background:#def7eb;color:#15885a}
+.done-banner{grid-column:1/-1;padding:20px 28px;border-radius:24px;background:linear-gradient(135deg,rgba(222,247,235,.9),rgba(209,240,255,.8));border:1px solid rgba(94,200,138,.35);display:none;align-items:center;gap:14px;backdrop-filter:blur(12px)}
+.done-banner i{font-size:28px;color:#15885a}
+.done-banner h3{font-size:15px;font-weight:700;color:#0e5c3a;margin-bottom:2px}
+.done-banner p{font-size:13px;color:#2a7a58}
+@media(max-width:900px){.app{grid-template-columns:1fr}}
 </style>
 
 <div class="app">
   <div class="header">
     <div style="display:flex;align-items:center;gap:10px">
-      <i class="ti ti-brain" style="font-size:22px;color:#534AB7" aria-hidden="true"></i>
-      <span style="font-size:16px;font-weight:500">LLM Fine-Tuner Simulator</span>
+      <i class="ti ti-brain" style="font-size:24px;color:#534AB7" aria-hidden="true"></i>
+      <span style="font-size:16px;font-weight:700;color:#2d2955">LLM Fine-Tuner Simulator</span>
       <span class="status-chip idle" id="status-chip">idle</span>
     </div>
-    <span style="font-size:12px;color:var(--color-text-secondary)">Developed By Sisilika</span>
+    <span style="font-size:12px;color:#8a84a8">Developed by Sisilika</span>
   </div>
 
-  <div class="panel" style="grid-column:1">
+  <!-- Training data -->
+  <div class="panel">
     <div class="panel-title"><i class="ti ti-file-text" aria-hidden="true"></i> Training data</div>
-    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()">
-      <i class="ti ti-upload" style="font-size:24px;color:var(--color-text-secondary)" aria-hidden="true"></i>
-      <p id="upload-label"> Click to upload .txt, .md, .pdf or .docx files </p>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" role="button" aria-label="Upload training file">
+      <i class="ti ti-upload" style="font-size:28px;color:#9d8eff" id="upload-icon" aria-hidden="true"></i>
+      <p id="upload-label">Click to upload .txt, .md, .pdf or .docx</p>
       <p style="font-size:11px">or paste text below</p>
     </div>
     <input type="file" id="file-input" accept=".txt,.md,.pdf,.doc,.docx" style="display:none">
-    <textarea class="doc-input" id="doc-text" placeholder="Or paste your document text here…" rows="4"></textarea>
+    <textarea class="doc-input" id="doc-text" placeholder="Or paste your document text here…" rows="5"></textarea>
     <p class="token-badge" id="token-badge">0 tokens estimated</p>
     <div class="config-row">
       <div class="config-item">
@@ -404,150 +95,130 @@ textarea.doc-input:focus,
     <button class="train-btn" id="train-btn" onclick="startTraining()">
       <i class="ti ti-player-play" aria-hidden="true"></i> Start training
     </button>
-    <div class="log-area" id="log-area" aria-live="polite"></div>
+    <div class="log-area" id="log-area" aria-live="polite">Waiting to start…</div>
   </div>
 
-  <div class="panel" style="grid-column:2">
+  <!-- Metrics -->
+  <div class="panel">
     <div class="panel-title"><i class="ti ti-chart-line" aria-hidden="true"></i> Training metrics</div>
     <div class="metrics-grid">
-      <div class="metric-card"><div class="label">Train loss</div><div class="value warn" id="m-loss">—</div></div>
-      <div class="metric-card"><div class="label">Accuracy</div><div class="value good" id="m-acc">—</div></div>
+      <div class="metric-card"><div class="label">Train loss</div><div class="value" id="m-loss">—</div></div>
+      <div class="metric-card"><div class="label">Accuracy</div><div class="value" id="m-acc">—</div></div>
       <div class="metric-card"><div class="label">Perplexity</div><div class="value" id="m-ppl">—</div></div>
     </div>
     <div class="epoch-label" id="epoch-label">Not started</div>
-    <div class="progress-bar-wrap"><div class="progress-bar" id="prog-bar" style="width:0%"></div></div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="prog-bar"></div></div>
     <div class="chart-wrap">
-      <canvas id="loss-chart" role="img" aria-label="Training loss curve over steps">Training loss values will appear as training runs.</canvas>
+      <canvas id="loss-chart" role="img" aria-label="Training loss and accuracy over steps"></canvas>
     </div>
   </div>
-  
+
+  <!-- Done banner -->
+  <div class="done-banner" id="done-banner">
+    <i class="ti ti-circle-check" aria-hidden="true"></i>
+    <div>
+      <h3 id="done-title">Fine-tuning complete</h3>
+      <p id="done-sub">Model adapter weights saved successfully.</p>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
 <script>
-let trainedDoc = '';
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
 let lossChart = null;
-let lossData = [];
-let accData = [];
-let stepLabels = [];
+let lossData = [], accData = [], stepLabels = [];
 let isTraining = false;
-
-const ctx = document.getElementById('loss-chart').getContext('2d');
 
 function initChart() {
   if (lossChart) lossChart.destroy();
   lossData = []; accData = []; stepLabels = [];
+  const ctx = document.getElementById('loss-chart').getContext('2d');
   lossChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: stepLabels,
       datasets: [
-        { label: 'Loss', data: lossData, borderColor: '#D85A30', backgroundColor: 'rgba(216,90,48,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2, fill: true },
-        { label: 'Accuracy', data: accData, borderColor: '#1D9E75', backgroundColor: 'rgba(29,158,117,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2, fill: true, yAxisID: 'y2' }
+        { label: 'Loss', data: lossData, borderColor: '#ff6b81', backgroundColor: 'rgba(255,107,129,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2, fill: true },
+        { label: 'Accuracy', data: accData, borderColor: '#2db87d', backgroundColor: 'rgba(45,184,125,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2, fill: true, yAxisID: 'y2' }
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false, animation: { duration: 200 },
-      plugins: { legend: { display: false } },
+      responsive: true, maintainAspectRatio: false, animation: { duration: 180 },
+      plugins: { legend: { display: true, labels: { font: { size: 11 }, color: '#6f6a8d' } } },
       scales: {
-        x: { ticks: { font: { size: 10 }, color: '#888780', maxRotation: 0 }, grid: { color: 'rgba(136,135,128,0.12)' } },
-        y: { title: { display: true, text: 'Loss', font: { size: 10 }, color: '#D85A30' }, ticks: { font: { size: 10 }, color: '#888780' }, grid: { color: 'rgba(136,135,128,0.12)' }, min: 0 },
-        y2: { position: 'right', title: { display: true, text: 'Acc %', font: { size: 10 }, color: '#1D9E75' }, ticks: { font: { size: 10 }, color: '#888780' }, grid: { display: false }, min: 0, max: 100 }
+        x: { ticks: { font: { size: 10 }, color: '#8a84a8', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(124,108,255,0.08)' } },
+        y: { title: { display: true, text: 'Loss', font: { size: 10 }, color: '#ff6b81' }, ticks: { font: { size: 10 }, color: '#8a84a8' }, grid: { color: 'rgba(124,108,255,0.08)' }, min: 0 },
+        y2: { position: 'right', title: { display: true, text: 'Acc %', font: { size: 10 }, color: '#2db87d' }, ticks: { font: { size: 10 }, color: '#8a84a8' }, grid: { display: false }, min: 0, max: 100 }
       }
     }
   });
 }
-
 initChart();
-
-document.getElementById('file-input').addEventListener('change', async e => {
-
-  const f = e.target.files[0];
-  if (!f) return;
-
-  const ext = f.name.split('.').pop().toLowerCase();
-  let extractedText = '';
-
-  try {
-
-    if (ext === 'txt' || ext === 'md') {
-
-      extractedText = await f.text();
-
-    } else if (ext === 'pdf') {
-
-      const buffer = await f.arrayBuffer();
-
-      const pdf = await pdfjsLib.getDocument({
-        data: buffer
-      }).promise;
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-
-        extractedText +=
-          content.items.map(item => item.str).join(' ') + '\n';
-
-      }
-
-    } else if (ext === 'docx') {
-
-      const buffer = await f.arrayBuffer();
-
-      const result =
-        await mammoth.extractRawText({ arrayBuffer: buffer });
-
-      extractedText = result.value;
-
-    } else {
-
-      alert('Supported files: TXT, MD, PDF, DOCX');
-      return;
-
-    }
-
-    document.getElementById('doc-text').value = extractedText;
-
-    document.getElementById('upload-zone')
-      .classList.add('has-data');
-
-    document.getElementById('upload-label')
-      .textContent = f.name;
-
-    updateTokenBadge();
-
-  } catch (err) {
-
-    console.error(err);
-
-    alert('Could not read file.');
-
-  }
-
-});
 
 function updateTokenBadge() {
   const text = document.getElementById('doc-text').value;
-  const est = Math.round(text.split(/\s+/).filter(Boolean).length * 1.35);
-  document.getElementById('token-badge').textContent = `~${est.toLocaleString()} tokens estimated`;
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const tokens = Math.round(words * 1.35);
+  document.getElementById('token-badge').textContent =
+    '~' + tokens.toLocaleString() + ' tokens estimated (' + words.toLocaleString() + ' words)';
 }
+document.getElementById('doc-text').addEventListener('input', updateTokenBadge);
+
+document.getElementById('file-input').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const ext = f.name.split('.').pop().toLowerCase();
+  let text = '';
+  try {
+    if (ext === 'txt' || ext === 'md') {
+      text = await f.text();
+    } else if (ext === 'pdf') {
+      if (typeof pdfjsLib === 'undefined') { alert('PDF library not loaded yet, please retry.'); return; }
+      const buffer = await f.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(' ') + '\n';
+      }
+    } else if (ext === 'docx' || ext === 'doc') {
+      if (typeof mammoth === 'undefined') { alert('DOCX library not loaded yet, please retry.'); return; }
+      const buffer = await f.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+      text = result.value;
+    } else {
+      alert('Supported: .txt, .md, .pdf, .docx'); return;
+    }
+    if (!text.trim()) { alert('File appears empty or could not be read.'); return; }
+    document.getElementById('doc-text').value = text;
+    document.getElementById('upload-zone').classList.add('has-data');
+    document.getElementById('upload-icon').className = 'ti ti-circle-check';
+    document.getElementById('upload-label').textContent = '✓ ' + f.name;
+    updateTokenBadge();
+  } catch (err) {
+    alert('Could not read file: ' + err.message);
+  }
+});
 
 function setStatus(s) {
   const chip = document.getElementById('status-chip');
   chip.textContent = s;
-  chip.className = 'status-chip ' + (s === 'idle' ? 'idle' : s === 'training' ? 'training' : 'done');
+  chip.className = 'status-chip ' + s;
 }
-
-function log(msg, cls = '') {
+function log(msg, cls) {
   const el = document.getElementById('log-area');
-  el.innerHTML += `<div class="${cls ? 'log-' + cls : ''}">${msg}</div>`;
+  if (el.textContent === 'Waiting to start…') el.innerHTML = '';
+  el.innerHTML += '<div' + (cls ? ' class="log-' + cls + '"' : '') + '>' + msg + '</div>';
   el.scrollTop = el.scrollHeight;
 }
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function startTraining() {
   const text = document.getElementById('doc-text').value.trim();
@@ -555,98 +226,72 @@ async function startTraining() {
   if (isTraining) return;
   isTraining = true;
 
-  trainedDoc = text;
-  const epochs = parseInt(document.getElementById('cfg-epochs').value) || 3;
+  const epochs = Math.max(1, Math.min(10, parseInt(document.getElementById('cfg-epochs').value) || 3));
   const lr = document.getElementById('cfg-lr').value;
   const bs = parseInt(document.getElementById('cfg-bs').value);
-  const words = text.split(/\s+/).filter(Boolean).length;
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
   const tokens = Math.round(words * 1.35);
   const stepsPerEpoch = Math.max(4, Math.ceil(tokens / (bs * 512)));
+  const totalSteps = epochs * stepsPerEpoch;
 
   document.getElementById('train-btn').disabled = true;
-  document.getElementById('train-btn').classList.add('running');
   document.getElementById('train-btn').innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> Training…';
   document.getElementById('log-area').innerHTML = '';
+  document.getElementById('done-banner').style.display = 'none';
   setStatus('training');
   initChart();
 
-  log(`Starting fine-tune | tokens: ${tokens.toLocaleString()} | lr: ${lr} | batch: ${bs}`);
+  log('Initializing fine-tune run…');
+  log('Tokens: ' + tokens.toLocaleString() + ' | LR: ' + lr + ' | Batch: ' + bs);
   await sleep(300);
 
-  let baseLoss = 2.8 + Math.random() * 0.4;
-  let baseAcc = 18 + Math.random() * 5;
+  const baseLoss = 2.8 + Math.random() * 0.4;
+  const baseAcc = 18 + Math.random() * 5;
   let step = 0;
 
   for (let epoch = 1; epoch <= epochs; epoch++) {
-    log(`Epoch ${epoch}/${epochs} — ${stepsPerEpoch} steps`);
+    log('Epoch ' + epoch + '/' + epochs + ' — ' + stepsPerEpoch + ' steps');
     for (let s = 1; s <= stepsPerEpoch; s++) {
       step++;
-      const frac = step / (epochs * stepsPerEpoch);
-      const decay = Math.exp(-frac * 3.2);
-      const noise = (Math.random() - 0.5) * 0.18;
-      const loss = parseFloat((baseLoss * decay + 0.22 + noise).toFixed(3));
-      const acc = parseFloat(Math.min(96, baseAcc + frac * 68 + (Math.random() - 0.5) * 3).toFixed(1));
+      const frac = step / totalSteps;
+      const noise = (Math.random() - 0.5) * 0.15;
+      const loss = parseFloat(Math.max(0.05, baseLoss * Math.exp(-frac * 3.2) + 0.22 + noise).toFixed(3));
+      const acc = parseFloat(Math.min(96, baseAcc + frac * 68 + (Math.random() - 0.5) * 2.5).toFixed(1));
       const ppl = parseFloat(Math.exp(loss).toFixed(2));
 
-      stepLabels.push(`E${epoch}S${s}`);
-      lossData.push(loss); accData.push(acc);
+      stepLabels.push('E' + epoch + 'S' + s);
+      lossData.push(loss);
+      accData.push(acc);
       lossChart.update();
 
       document.getElementById('m-loss').textContent = loss.toFixed(3);
       document.getElementById('m-acc').textContent = acc.toFixed(1) + '%';
       document.getElementById('m-ppl').textContent = ppl.toFixed(2);
-      const pct = Math.round((step / (epochs * stepsPerEpoch)) * 100);
+      const pct = Math.round((step / totalSteps) * 100);
       document.getElementById('prog-bar').style.width = pct + '%';
-      document.getElementById('epoch-label').textContent = `Epoch ${epoch}/${epochs} · Step ${s}/${stepsPerEpoch} · ${pct}%`;
-
-      await sleep(220);
+      document.getElementById('epoch-label').textContent =
+        'Epoch ' + epoch + '/' + epochs + ' · Step ' + s + '/' + stepsPerEpoch + ' · ' + pct + '%';
+      await sleep(200);
     }
-    log(`✓ Epoch ${epoch} complete — loss: ${lossData[lossData.length-1].toFixed(3)}, acc: ${accData[accData.length-1].toFixed(1)}%`, 'ok');
-    await sleep(200);
+    log('✓ Epoch ' + epoch + ' — loss: ' + lossData[lossData.length-1].toFixed(3) +
+        ' | acc: ' + accData[accData.length-1].toFixed(1) + '%', 'ok');
+    await sleep(150);
   }
 
-  log('✅ Training complete — model weights saved', 'ok');
+  log('✅ Training complete — adapter weights saved', 'ok');
   setStatus('done');
-  document.getElementById('epoch-label').textContent = `Training complete · ${step} total steps`;
+  document.getElementById('epoch-label').textContent = 'Training complete · ' + step + ' total steps';
+  document.getElementById('prog-bar').style.width = '100%';
   document.getElementById('train-btn').disabled = false;
-  document.getElementById('train-btn').classList.remove('running');
   document.getElementById('train-btn').innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Retrain';
-  document.getElementById('chat-input').disabled = false;
-  document.getElementById('send-btn').disabled = false;
+
+  const finalLoss = lossData[lossData.length-1].toFixed(3);
+  const finalAcc = accData[accData.length-1].toFixed(1);
+  document.getElementById('done-title').textContent = 'Fine-tuning complete — ' + step + ' steps';
+  document.getElementById('done-sub').textContent =
+    'Final loss: ' + finalLoss + ' · Accuracy: ' + finalAcc + '% · Adapter weights saved successfully.';
+  document.getElementById('done-banner').style.display = 'flex';
+
   isTraining = false;
-  document.getElementById(
-  'provider-panel'
-).style.display = 'block';
-
-  
 }
-
-
-document.getElementById('chat-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
-});
-let selectedProvider = '';
-
-
-  localStorage.setItem(
-    'api_key',
-    key
-  );
-
-  document.getElementById(
-    'provider-panel'
-  ).style.display = 'none';
-
-  document.getElementById(
-    'api-section'
-  ).style.display = 'none';
-
-  document.getElementById(
-    'chat-panel'
-  ).style.display = 'block';
-
-  document.getElementById(
-    'chat-row'
-  ).style.display = 'flex';
-
-}
+</script>
